@@ -1,28 +1,9 @@
-SELECT * FROM Receipts;
+-- 結合する場合は、それぞれの行数が多いとパフォーマンスが落ちることを考慮する
+-- 内部表より駆動表のほうが行数が少ないほうが良い。
+-- 内部表は、インデックスでループをスキップできる
+-- インデックスがない場合は、どちらが大きい場合もあまり関係ない
 
-SELECT R1.cust_id, R1.seq, R1.price
-  FROM Receipts R1
-         INNER JOIN
-           (SELECT cust_id, MIN(seq) AS min_seq
-              FROM Receipts
-             GROUP BY cust_id) R2
-    ON R1.cust_id = R2.cust_id
-   AND R1.seq = R2.min_seq;
-
-
--- id  select_type  table       partitions  type    possible_keys  key      key_len  ref                    rows  filtered  Extra
--- --  -----------  ----------  ----------  ------  -------------  -------  -------  ---------------------  ----  --------  ------------------------
---  1  PRIMARY      <derived2>              ALL                                                                5       100  Using where
---  1  PRIMARY      R1                      eq_ref  PRIMARY        PRIMARY  8        R2.cust_id,R2.min_seq     1       100  
---  2  DERIVED      Receipts                range   PRIMARY        PRIMARY  4                                  5       100  Using index for group-by
-
--- EXPLAIN
--- -> Nested loop inner join  (cost=4.81 rows=5) (actual time=0.085..0.0953 rows=4 loops=1)
---     -> Filter: (R2.min_seq is not null)  (cost=2.73..3.06 rows=5) (actual time=0.0743..0.0758 rows=4 loops=1)
---         -> Table scan on R2  (cost=3.16..5.21 rows=5) (actual time=0.0731..0.0741 rows=4 loops=1)
---             -> Materialize  (cost=2.65..2.65 rows=5) (actual time=0.0711..0.0711 rows=4 loops=1)
---                 -> Covering index skip scan for grouping on Receipts using PRIMARY  (cost=1.5 rows=5) (actual time=0.0333..0.0469 rows=4 loops=1)
---     -> Single-row index lookup on R1 using PRIMARY (cust_id=R2.cust_id, seq=R2.min_seq)  (cost=0.27 rows=1) (actual time=0.00414..0.00419 rows=1 loops=4)
+-- 先に結合してから集計する
 
 SELECT C.co_cd, C.district,
        SUM(emp_nbr) AS sum_emp
@@ -38,6 +19,8 @@ SELECT C.co_cd, C.district,
 --  1  SIMPLE       S                  ALL     PRIMARY                                          10        10  Using where; Using temporary
 --  1  SIMPLE       C                  eq_ref  PRIMARY        PRIMARY  12       test.S.co_cd     1       100  
 
+-- 1 rows 7 loops
+
 -- EXPLAIN
 -- -> Table scan on <temporary>  (actual time=0.11..0.111 rows=4 loops=1)
 --     -> Aggregate using temporary table  (actual time=0.109..0.109 rows=4 loops=1)
@@ -45,6 +28,8 @@ SELECT C.co_cd, C.district,
 --             -> Filter: (S.main_flg = 'Y')  (cost=1.25 rows=1) (actual time=0.0378..0.0461 rows=7 loops=1)
 --                 -> Table scan on S  (cost=1.25 rows=10) (actual time=0.0348..0.0407 rows=10 loops=1)
 --             -> Single-row index lookup on C using PRIMARY (co_cd=S.co_cd)  (cost=0.35 rows=1) (actual time=0.00327..0.00333 rows=1 loops=7)
+
+-- 集約してから結合する
 
 SELECT C.co_cd, C.district, sum_emp
   FROM Companies C
@@ -63,6 +48,7 @@ SELECT C.co_cd, C.district, sum_emp
 --  1  PRIMARY      C                       eq_ref  PRIMARY        PRIMARY  12       CSUM.co_cd     1       100  
 --  2  DERIVED      Shops                   index   PRIMARY        PRIMARY  24                     10        10  Using where
 
+-- 1 rows 4 loops
 
 -- EXPLAIN
 -- -> Nested loop inner join  (cost=4.82 rows=1) (actual time=0.111..0.124 rows=4 loops=1)
