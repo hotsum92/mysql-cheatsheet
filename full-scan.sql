@@ -8,17 +8,33 @@ SELECT *
 -- --  -----------  -----  ----------  ----  -------------  ---  -------  ---  ----  --------  -----
 --  1  SIMPLE       Shops              ALL                                       60       100  
 
+EXPLAIN ANALYZE
+SELECT *
+  FROM Shops;
+
+-- EXPLAIN
+-- -> Table scan on Shops  (cost=6.25 rows=60) (actual time=0.0692..0.0825 rows=60 loops=1)\n
+
 -- index scan
 EXPLAIN
 SELECT *
   FROM Shops
- WHERE ShopID = '00050';
+ WHERE shop_id = '00050';
 
 -- id  select_type  table  partitions  type   possible_keys  key      key_len  ref    rows  filtered  Extra
 -- --  -----------  -----  ----------  -----  -------------  -------  -------  -----  ----  --------  -----
 --  1  SIMPLE       Shops              const  PRIMARY        PRIMARY  20       const     1       100  
 
+EXPLAIN ANALYZE
+SELECT *
+  FROM Shops
+ WHERE shop_id = '00050';
+
+-- EXPLAIN
+-- -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=128e-6..238e-6 rows=1 loops=1)\n
+
 -- conjunction
+EXPLAIN
 SELECT shop_name
   FROM Shops INNER JOIN Reservations
     ON Shops.shop_id = Reservations.shop_id;
@@ -28,15 +44,13 @@ SELECT shop_name
 --  1  SIMPLE       Reservations              ALL                                                                   10       100  Using where
 --  1  SIMPLE       Shops                     eq_ref  PRIMARY        PRIMARY  20       test.Reservations.shop_id     1       100  
 
-SELECT item_name, year, price_tax_ex AS price
-  FROM Items
- WHERE year <= 2001
-UNION ALL
-SELECT item_name, year, price_tax_in AS price
-  FROM Items
- WHERE year >= 2002;
+EXPLAIN ANALYZE
+SELECT shop_name
+  FROM Shops INNER JOIN Reservations
+    ON Shops.shop_id = Reservations.shop_id;
 
--- id  select_type  table  partitions  type  possible_keys  key  key_len  ref  rows  filtered  Extra
--- --  -----------  -----  ----------  ----  -------------  ---  -------  ---  ----  --------  -----------
---  1  PRIMARY      Items              ALL                                       12     33.33  Using where
---  2  UNION        Items              ALL                                       12     33.33  Using where
+-- EXPLAIN
+-- -> Nested loop inner join  (cost=4.75 rows=10) (actual time=0.0501..0.0873 rows=10 loops=1)
+--     -> Filter: (Reservations.shop_id is not null)  (cost=1.25 rows=10) (actual time=0.0297..0.0377 rows=10 loops=1)
+--         -> Table scan on Reservations  (cost=1.25 rows=10) (actual time=0.0286..0.0347 rows=10 loops=1)
+--     -> Single-row index lookup on Shops using PRIMARY (shop_id=Reservations.shop_id)  (cost=0.26 rows=1) (actual time=0.00445..0.00449 rows=1 loops=10)
