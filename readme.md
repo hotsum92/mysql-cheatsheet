@@ -14,5 +14,5 @@ curl https://gihyo.jp/assets/files/book/2015/978-4-7741-7301-6/download/SQL_prac
 ```
 docker volume create mysql-data
 # run mysql
-echo 'create database test' | ./db.sh
+echo 'create database test' | mysql -h $(hostname -i) -P 3307 -u root
 ```
