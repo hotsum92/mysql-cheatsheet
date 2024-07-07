@@ -13,7 +13,7 @@ SELECT *
   FROM Shops;
 
 -- EXPLAIN
--- -> Table scan on Shops  (cost=6.25 rows=60) (actual time=0.0692..0.0825 rows=60 loops=1)\n
+-- -> Table scan on Shops  (cost=6.25 rows=60) (actual time=0.0692..0.0825 rows=60 loops=1)
 
 -- index scan
 EXPLAIN
@@ -31,7 +31,7 @@ SELECT *
  WHERE shop_id = '00050';
 
 -- EXPLAIN
--- -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=128e-6..238e-6 rows=1 loops=1)\n
+-- -> Rows fetched before execution  (cost=0..0 rows=1) (actual time=128e-6..238e-6 rows=1 loops=1)
 
 -- conjunction
 EXPLAIN
